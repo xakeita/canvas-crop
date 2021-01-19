@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Canvas crop</title>
+</head>
+<body>
+<input id="scale" type="range" value="" min="10" max="400" oninput="scaling(value)">
+<canvas id="canvas" width="600" height="600"></canvas>
+<script>
+    const canvas = document.getElementById('canvas')
+    const canvasWidth = canvas.width
+    const canvasHeight = canvas.height
+
+    let ix = 0 // 中心座標x
+    let iy = 0 // 中心座標y
+    let v = 1.0 // スケール比率
+
+    const img = new Image()
+    img.src = 'https://1.bp.blogspot.com/-AoQB8vIvlcw/W8BOcXcEQ6I/AAAAAAABPZM/rXNbol90tXcxBZBlXsg__xix03b_F4nqwCLcBGAs/s800/pet_cat_omoi_sleep_man.png'
+    img.onload = function () {
+        ix = img.width / 2
+        iy = img.height / 2
+        const scale = canvasWidth/img.width * 100
+        document.getElementById( 'scale' ).value = scale
+        scaling(scale)
+    }
+
+    function drawCanvas(x, y) {
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = 'rgb(200, 200, 200)'
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+        ctx.drawImage(
+            img, 0, 0, img.width, img.height,
+            (canvasWidth/2)-x*v, (canvasHeight/2)-y*v, img.width*v, img.height*v
+        )
+    }
+
+    function scaling(value) {
+        v = parseInt(value) * 0.01
+        drawCanvas(ix, iy)
+    }
+
+    let mouse_down = false      // canvas ドラッグ中フラグ
+    let sx = 0                  // canvas ドラッグ開始位置
+    let sy = 0
+    canvas.ontouchstart =
+        canvas.onmousedown = function (event){     // canvas ドラッグ開始位置
+            mouse_down = true
+            sx = event.pageX
+            sy = event.pageY
+            return false // イベントを伝搬しない
+        }
+    canvas.ontouchend =
+        canvas.onmouseout =
+            canvas.onmouseup = function (event){       // canvas ドラッグ終了位置
+                if (mouse_down === false) return
+                mouse_down = false
+                drawCanvas( ix += (sx-event.pageX)/v, iy += (sy-event.pageY)/v )
+                return false // イベントを伝搬しない
+            }
+    canvas.ontouchmove =
+        canvas.onmousemove = function (event){     // canvas ドラッグ中
+            if (mouse_down === false) return
+            drawCanvas( ix + (sx-event.pageX)/v, iy + (sy-event.pageY)/v )
+            return false // イベントを伝搬しない
+        }
+</script>
+</body>
+</html>
