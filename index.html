@@ -8,10 +8,11 @@
     <title>Canvas crop</title>
 </head>
 <body>
-<input id="scale" type="range" value="" min="10" max="400" oninput="scaling(value)">
-<canvas id="canvas" width="600" height="600"></canvas>
+<input id="scale" type="range" value="" min="10" max="400" oninput="scaling(value)"><br>
+<canvas id="canvas" width="600" height="600"></canvas><br>
 <script>
     const canvas = document.getElementById('canvas')
+    const ctx = canvas.getContext('2d')
     const canvasWidth = canvas.width
     const canvasHeight = canvas.height
 
@@ -29,14 +30,23 @@
         scaling(scale)
     }
 
+    const backgroundImg = new Image()
+    backgroundImg.src = './background.png'
+    backgroundImg.onload = function () {
+        drawBackground()
+    }
+
+    function drawBackground() {
+        ctx.drawImage(backgroundImg, -300, -600)
+    }
+
     function drawCanvas(x, y) {
-        const ctx = canvas.getContext('2d')
-        ctx.fillStyle = 'rgb(200, 200, 200)'
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight)
         ctx.drawImage(
             img, 0, 0, img.width, img.height,
             (canvasWidth/2)-x*v, (canvasHeight/2)-y*v, img.width*v, img.height*v
         )
+        drawBackground()
     }
 
     function scaling(value) {
