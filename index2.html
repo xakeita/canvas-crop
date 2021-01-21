@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <script src="https://unpkg.com/konva@7.0.3/konva.min.js"></script>
+    <title>Canvas crop use Konva library</title>
+</head>
+<body>
+<div id="container"></div>
+<script>
+    const width = 600
+    const height = 600
+
+    const stage = new Konva.Stage({
+        container: 'container',
+        width: width,
+        height: height,
+    })
+
+    const layer = new Konva.Layer()
+    stage.add(layer)
+
+    // 当てはめる画像
+    const mainImg = new Image()
+    mainImg.src = 'https://1.bp.blogspot.com/-AoQB8vIvlcw/W8BOcXcEQ6I/AAAAAAABPZM/rXNbol90tXcxBZBlXsg__xix03b_F4nqwCLcBGAs/s800/pet_cat_omoi_sleep_man.png'
+    const main = new Konva.Image({
+        x: 0,
+        y: 0,
+        image: mainImg,
+    })
+    const sub = new Konva.Image({
+        x: 0,
+        y: 0,
+        image: mainImg,
+        draggable: true,
+        opacity: 0,
+    })
+    sub.on('dragstart', function () {
+        drag()
+    })
+    sub.on('dragmove', function () {
+        drag()
+    })
+    sub.on('dragend', function () {
+        drag()
+    })
+
+    // 型画像
+    const backgroundImg = new Image()
+    backgroundImg.src = 'background.png'
+    const background = new Konva.Image({
+        x: -300,
+        y: -600,
+        image: backgroundImg,
+        draggable: true
+    })
+
+    // 画像がロードしたら
+    mainImg.onload = function () {
+        layer.add(main)
+        backgroundImg.onload = function () {
+            layer.add(background)
+            layer.add(sub)
+            layer.batchDraw()
+        }
+    }
+
+    function drag() {
+        main.x(sub.x())
+        main.y(sub.y())
+    }
+</script>
+</body>
+</html>
