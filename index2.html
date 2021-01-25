@@ -9,11 +9,17 @@
     <title>Canvas crop use Konva library</title>
 </head>
 <body>
-<div id="container"></div>
+<div id="container"></div><br>
+<input type="range" id="scale" min="0.1" max="3" step="any">
 <script>
-    Konva.hitOnDragEnabled = true
     const width = 600
     const height = 600
+
+    /**
+     * レイヤーなどを宣言
+     */
+
+    Konva.hitOnDragEnabled = true
 
     const stage = new Konva.Stage({
         container: 'container',
@@ -22,17 +28,16 @@
     })
 
     // 本体レイヤー
-    const layer = new Konva.Layer()
-    stage.add(layer)
+    const mainLayer = new Konva.Layer()
+    stage.add(mainLayer)
 
     // 画像操作用レイヤー
-    const layer2 = new Konva.Layer()
-    stage.add(layer2)
+    const subLayer = new Konva.Layer()
+    stage.add(subLayer)
 
-    // 当てはめる画像
+    // メイン画像
     const mainImg = new Image()
-    childImageUrl = 'https://www.studio-alice.co.jp/upload/top/topslide/TS015523.jpeg'
-    mainImg.src = childImageUrl
+    mainImg.src = 'https://mynavi-ms.jp/magazine/item/pixta_35915800_M.png'
     const main = new Konva.Image({
         x: 0,
         y: 0,
@@ -40,28 +45,28 @@
     })
 
     // 型画像
-    const backgroundImg = new Image()
-    backgroundImg.src = 'https://3.bp.blogspot.com/-xv3CptrtMAM/W44Xsi7noPI/AAAAAAABOUI/vFDnsgg9_4Ap96uc3psoE-dmwhvUBeJzgCLcBGAs/s2000/chara_inoshishi_photo_face.png'
-    const background = new Konva.Image({
+    const modelImg = new Image()
+    modelImg.src = 'https://3.bp.blogspot.com/-xv3CptrtMAM/W44Xsi7noPI/AAAAAAABOUI/vFDnsgg9_4Ap96uc3psoE-dmwhvUBeJzgCLcBGAs/s2000/chara_inoshishi_photo_face.png'
+    const model = new Konva.Image({
         x: -300,
         y: -600,
-        image: backgroundImg,
+        image: modelImg,
     })
 
     // 画像読み込み
     mainImg.onload = function () {
-        layer.add(main)
+        mainLayer.add(main)
         main.zIndex(0)
-        layer.batchDraw()
+        mainLayer.batchDraw()
     }
 
-    backgroundImg.onload = function () {
-        layer.add(background)
-        background.zIndex(1)
-        layer.batchDraw()
+    modelImg.onload = function () {
+        mainLayer.add(model)
+        model.zIndex(1)
+        mainLayer.batchDraw()
     }
 
-    // mainImageを操作するレイヤー
+    // mainImageを操作するオブジェクト
     const sub = new Konva.Rect({
         x: 0,
         y: 0,
@@ -70,6 +75,14 @@
         draggable: true,
         opacity: 0,
     })
+    subLayer.add(sub)
+    subLayer.draw()
+
+
+    /**
+     * 画像をドラッグ
+     */
+
     sub.on('dragstart', function () {
         drag()
     })
@@ -79,6 +92,71 @@
     sub.on('dragend', function () {
         drag()
     })
+    function drag() {
+        main.x(sub.x())
+        main.y(sub.y())
+        mainLayer.batchDraw()
+    }
+
+
+    /**
+     * 拡大・縮小
+     */
+    const scaleSlider = document.getElementById('scale')
+    scaleSlider.value = 1
+
+    // スライダー
+    scaleSlider.addEventListener('input', function (e) {
+        const center = {
+            x: stage.width() / 2,
+            y: stage.height() / 2,
+        };
+
+        const relatedTo = {
+            x: (center.x - sub.x()) / sub.scaleX(),
+            y: (center.y - sub.y()) / sub.scaleX(),
+        };
+
+        const scale = e.target.value
+
+        const newPosition = {
+            x: center.x - relatedTo.x * scale,
+            y: center.y - relatedTo.y * scale,
+        }
+
+        scaling(scale, newPosition)
+    })
+
+    // マウスホイール
+    sub.on('wheel', function (e) {
+        e.evt.preventDefault()
+
+        const scaleBy = 1.02
+        const oldScale = sub.scaleX()
+
+        const center = {
+            x: stage.width() / 2,
+            y: stage.height() / 2,
+        };
+
+        const relatedTo = {
+            x: (center.x - sub.x()) / oldScale,
+            y: (center.y - sub.y()) / oldScale,
+        };
+
+        const scale = e.evt.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy
+
+        const newPosition = {
+            x: center.x - relatedTo.x * scale,
+            y: center.y - relatedTo.y * scale,
+        }
+
+        scaleSlider.value = scale
+
+        scaling(scale, newPosition)
+    })
+
+    // ピンチイン・ピンチアウト
     let lastCenter = null;
     let lastDist = 0;
     sub.on('touchmove', function (e) {
@@ -100,16 +178,20 @@
                 y: touch2.clientY,
             }
 
+            const newCenter = {
+                x: (p1.x + p2.x) / 2,
+                y: (p1.y + p2.y) / 2,
+            }
+
             if (!lastCenter) {
-                lastCenter = getCenter(p1, p2)
+                lastCenter = newCenter
                 return
             }
-            const newCenter = getCenter(p1, p2)
 
-            const dist = getDistance(p1, p2)
+            const distance = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
 
             if (!lastDist) {
-                lastDist = dist
+                lastDist = distance
             }
 
             const pointTo = {
@@ -117,12 +199,7 @@
                 y: (newCenter.y - sub.y()) / sub.scaleX(),
             }
 
-            const scale = sub.scaleX() * (dist / lastDist)
-
-            sub.scaleX(scale)
-            sub.scaleY(scale)
-            main.scaleX(scale)
-            main.scaleY(scale)
+            const scale = sub.scaleX() * (distance / lastDist)
 
             const dx = newCenter.x - lastCenter.x
             const dy = newCenter.y - lastCenter.y
@@ -132,36 +209,29 @@
                 y: newCenter.y - pointTo.y * scale + dy,
             }
 
-            sub.position(newPosition)
-            main.position(newPosition)
-            stage.batchDraw()
-
-            lastDist = dist
+            lastDist = distance
             lastCenter = newCenter
+
+            scaleSlider.value = scale
+
+            scaling(scale, newPosition)
         }
     })
     sub.on('touchend', function () {
         lastDist = 0;
         lastCenter = null;
     });
-    layer2.add(sub)
-    layer2.draw()
 
-    function drag() {
-        main.x(sub.x())
-        main.y(sub.y())
-        layer.draw()
-    }
+    function scaling(scale, position) {
+        sub.scaleX(scale)
+        sub.scaleY(scale)
+        main.scaleX(scale)
+        main.scaleY(scale)
 
-    function getDistance(p1, p2) {
-        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
-    }
+        sub.position(position)
+        main.position(position)
 
-    function getCenter(p1, p2) {
-        return {
-            x: (p1.x + p2.x) / 2,
-            y: (p1.y + p2.y) / 2,
-        }
+        stage.batchDraw()
     }
 </script>
 </body>
