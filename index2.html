@@ -5,13 +5,13 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
     <script src="https://unpkg.com/konva@7.0.3/konva.min.js"></script>
     <title>Canvas crop use Konva library</title>
 </head>
 <body>
 <div id="container"></div>
 <script>
+    Konva.hitOnDragEnabled = true
     const width = 600
     const height = 600
 
@@ -21,21 +21,52 @@
         height: height,
     })
 
+    // 本体レイヤー
     const layer = new Konva.Layer()
     stage.add(layer)
 
+    // 画像操作用レイヤー
+    const layer2 = new Konva.Layer()
+    stage.add(layer2)
+
     // 当てはめる画像
     const mainImg = new Image()
-    mainImg.src = 'https://1.bp.blogspot.com/-AoQB8vIvlcw/W8BOcXcEQ6I/AAAAAAABPZM/rXNbol90tXcxBZBlXsg__xix03b_F4nqwCLcBGAs/s800/pet_cat_omoi_sleep_man.png'
+    childImageUrl = 'https://www.studio-alice.co.jp/upload/top/topslide/TS015523.jpeg'
+    mainImg.src = childImageUrl
     const main = new Konva.Image({
         x: 0,
         y: 0,
         image: mainImg,
     })
-    const sub = new Konva.Image({
+
+    // 型画像
+    const backgroundImg = new Image()
+    backgroundImg.src = 'https://3.bp.blogspot.com/-xv3CptrtMAM/W44Xsi7noPI/AAAAAAABOUI/vFDnsgg9_4Ap96uc3psoE-dmwhvUBeJzgCLcBGAs/s2000/chara_inoshishi_photo_face.png'
+    const background = new Konva.Image({
+        x: -300,
+        y: -600,
+        image: backgroundImg,
+    })
+
+    // 画像読み込み
+    mainImg.onload = function () {
+        layer.add(main)
+        main.zIndex(0)
+        layer.batchDraw()
+    }
+
+    backgroundImg.onload = function () {
+        layer.add(background)
+        background.zIndex(1)
+        layer.batchDraw()
+    }
+
+    // mainImageを操作するレイヤー
+    const sub = new Konva.Rect({
         x: 0,
         y: 0,
-        image: mainImg,
+        width: mainImg.width,
+        height: mainImg.height,
         draggable: true,
         opacity: 0,
     })
@@ -48,30 +79,89 @@
     sub.on('dragend', function () {
         drag()
     })
+    let lastCenter = null;
+    let lastDist = 0;
+    sub.on('touchmove', function (e) {
+        e.evt.preventDefault()
+        const touch1 = e.evt.touches[0]
+        const touch2 = e.evt.touches[1]
 
-    // 型画像
-    const backgroundImg = new Image()
-    backgroundImg.src = 'background.png'
-    const background = new Konva.Image({
-        x: -300,
-        y: -600,
-        image: backgroundImg,
-        draggable: true
-    })
+        if (touch1 && touch2) {
+            if (sub.isDragging()) {
+                sub.stopDrag()
+            }
 
-    // 画像がロードしたら
-    mainImg.onload = function () {
-        layer.add(main)
-        backgroundImg.onload = function () {
-            layer.add(background)
-            layer.add(sub)
-            layer.batchDraw()
+            const p1 = {
+                x: touch1.clientX,
+                y: touch1.clientY,
+            }
+            const p2 = {
+                x: touch2.clientX,
+                y: touch2.clientY,
+            }
+
+            if (!lastCenter) {
+                lastCenter = getCenter(p1, p2)
+                return
+            }
+            const newCenter = getCenter(p1, p2)
+
+            const dist = getDistance(p1, p2)
+
+            if (!lastDist) {
+                lastDist = dist
+            }
+
+            const pointTo = {
+                x: (newCenter.x - sub.x()) / sub.scaleX(),
+                y: (newCenter.y - sub.y()) / sub.scaleX(),
+            }
+
+            const scale = sub.scaleX() * (dist / lastDist)
+
+            sub.scaleX(scale)
+            sub.scaleY(scale)
+            main.scaleX(scale)
+            main.scaleY(scale)
+
+            const dx = newCenter.x - lastCenter.x
+            const dy = newCenter.y - lastCenter.y
+
+            const newPosition = {
+                x: newCenter.x - pointTo.x * scale + dx,
+                y: newCenter.y - pointTo.y * scale + dy,
+            }
+
+            sub.position(newPosition)
+            main.position(newPosition)
+            stage.batchDraw()
+
+            lastDist = dist
+            lastCenter = newCenter
         }
-    }
+    })
+    sub.on('touchend', function () {
+        lastDist = 0;
+        lastCenter = null;
+    });
+    layer2.add(sub)
+    layer2.draw()
 
     function drag() {
         main.x(sub.x())
         main.y(sub.y())
+        layer.draw()
+    }
+
+    function getDistance(p1, p2) {
+        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
+    }
+
+    function getCenter(p1, p2) {
+        return {
+            x: (p1.x + p2.x) / 2,
+            y: (p1.y + p2.y) / 2,
+        }
     }
 </script>
 </body>
