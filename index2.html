@@ -55,9 +55,13 @@
 
     // 画像読み込み
     mainImg.onload = function () {
+        // 画像ドラッグ用オブジェクトにメイン画像の大きさをセット
+        sub.width(mainImg.width)
+        sub.height(mainImg.height)
+
         mainLayer.add(main)
         main.zIndex(0)
-        mainLayer.batchDraw()
+        stage.batchDraw()
     }
 
     modelImg.onload = function () {
@@ -70,13 +74,12 @@
     const sub = new Konva.Rect({
         x: 0,
         y: 0,
-        width: mainImg.width,
-        height: mainImg.height,
+        width: 0,
+        height: 0,
         draggable: true,
         opacity: 0,
     })
     subLayer.add(sub)
-    subLayer.draw()
 
 
     /**
